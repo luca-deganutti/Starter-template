@@ -11,8 +11,8 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=8, max_length=255)
-    role: Literal["admin", "user"] = "user"
-    is_active: bool = True
+    is_active: bool = Field(..., default=True)
+
 
 
 class UserUpdate(BaseModel):
