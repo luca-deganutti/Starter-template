@@ -10,30 +10,29 @@ from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test_auth.db"
-
-engine = create_engine(
-    SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-)
-TestingSessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-    class_=Session,
-)
-
 
 @pytest.fixture
-def db_session() -> Generator[Session]:
+def db_session(tmp_path: pytest.TempPathFactory) -> Generator[Session]:
+    database_path = tmp_path / "test_auth.db"
+    engine = create_engine(
+        f"sqlite:///{database_path}",
+        connect_args={"check_same_thread": False},
+    )
+    testing_session_local = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=engine,
+        class_=Session,
+    )
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
-    db = TestingSessionLocal()
+    db = testing_session_local()
     try:
         yield db
     finally:
         db.close()
         Base.metadata.drop_all(bind=engine)
+        engine.dispose()
 
 
 @pytest.fixture

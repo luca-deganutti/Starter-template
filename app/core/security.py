@@ -1,49 +1,57 @@
-from datetime import datetime, timedelta, timezone
-from typing import Any, cast
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from jose import JWTError, jwt
-from passlib.context import CryptContext
+from pwdlib import PasswordHash
 
 from app.core.config import get_settings
 
 TOKEN_TYPE_ACCESS = "access"
 TOKEN_TYPE_REFRESH = "refresh"
 
-pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+password_hash = PasswordHash.recommended()
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return pwd_context.verify(plain_password, hashed_password)
+    return password_hash.verify(plain_password, hashed_password)
 
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    return password_hash.hash(password)
 
 
 def create_token(
     subject: str,
     expires_delta: timedelta,
     token_type: str,
-) -> str:
+    *,
+    jti: str | None = None,
+    additional_claims: dict[str, Any] | None = None,
+) -> tuple[str, datetime]:
     settings = get_settings()
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
+    expires_at = now + expires_delta
     payload = {
         "sub": subject,
         "type": token_type,
         "iat": int(now.timestamp()),
-        "exp": now + expires_delta,
+        "exp": int(expires_at.timestamp()),
     }
-    return cast(
-        str,
+    if jti is not None:
+        payload["jti"] = jti
+    if additional_claims is not None:
+        payload.update(additional_claims)
+    return (
         jwt.encode(
             payload,
             settings.JWT_SECRET_KEY,
             algorithm=settings.JWT_ALGORITHM,
         ),
+        expires_at,
     )
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str) -> tuple[str, datetime]:
     settings = get_settings()
     return create_token(
         subject=subject,
@@ -52,12 +60,19 @@ def create_access_token(subject: str) -> str:
     )
 
 
-def create_refresh_token(subject: str) -> str:
+def create_refresh_token(
+    subject: str,
+    *,
+    jti: str,
+    token_version: int,
+) -> tuple[str, datetime]:
     settings = get_settings()
     return create_token(
         subject=subject,
         expires_delta=timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS),
         token_type=TOKEN_TYPE_REFRESH,
+        jti=jti,
+        additional_claims={"token_version": token_version},
     )
 
 
@@ -68,7 +83,11 @@ def decode_token(token: str) -> dict[str, Any]:
         settings.JWT_SECRET_KEY,
         algorithms=[settings.JWT_ALGORITHM],
     )
-    return cast(dict[str, Any], payload)
+    return payload
+
+
+def utcnow() -> datetime:
+    return datetime.now(UTC)
 
 
 __all__ = [
@@ -79,5 +98,6 @@ __all__ = [
     "create_refresh_token",
     "decode_token",
     "hash_password",
+    "utcnow",
     "verify_password",
 ]

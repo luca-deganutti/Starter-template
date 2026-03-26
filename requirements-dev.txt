@@ -7,3 +7,4 @@ ruff==0.15.5
 black==26.3.0
 mypy==1.19.1
 pre-commit==4.5.1
+types-python-jose==3.5.0.20250531

@@ -1,0 +1,13 @@
+.git
+.github
+.mypy_cache
+.pytest_cache
+.ruff_cache
+__pycache__
+.coverage
+htmlcov
+.env
+venv
+.venv
+*.db
+*.sqlite3

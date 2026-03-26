@@ -1,11 +1,17 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_active_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.auth import RefreshTokenRequest, RegisterRequest, TokenResponse
+from app.schemas.auth import (
+    ChangePasswordRequest,
+    LogoutRequest,
+    RefreshTokenRequest,
+    RegisterRequest,
+    TokenResponse,
+)
 from app.schemas.user import UserRead
 from app.services import auth_service
 
@@ -38,6 +44,30 @@ def refresh_token(
     db: Session = Depends(get_db),
 ) -> TokenResponse:
     return auth_service.refresh_token_service(db, payload.refresh_token)
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout_user(
+    payload: LogoutRequest,
+    db: Session = Depends(get_db),
+) -> Response:
+    auth_service.logout_user_service(db, payload.refresh_token)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: ChangePasswordRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user),
+) -> Response:
+    auth_service.change_password_service(
+        db,
+        user=current_user,
+        current_password=payload.current_password,
+        new_password=payload.new_password,
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/me", response_model=UserRead)
