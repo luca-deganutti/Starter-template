@@ -11,3 +11,4 @@ sentry-sdk==2.54.0
 pwdlib[argon2]==0.3.0
 python-multipart==0.0.22
 email-validator==2.3.0
+mercadopago>=2.2.0

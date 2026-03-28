@@ -4,6 +4,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.api.v1.auth_router import router as auth_router
+from app.api.v1.payment_router import router as payment_router
 from app.api.v1.user_router import router as user_router
 from app.core.config import get_settings
 from app.db.session import get_db
@@ -35,3 +36,4 @@ def readiness_check(db: Session = Depends(get_db)) -> dict[str, str]:
 
 router.include_router(auth_router)
 router.include_router(user_router)
+router.include_router(payment_router)
